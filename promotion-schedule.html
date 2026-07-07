@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プロモーションスケジュール</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#fff;--bg-sub:#f5f5f3;--bg-ter:#eeede9;
+  --text:#1a1a18;--text-sub:#5f5e5a;--text-muted:#888780;
+  --border:rgba(0,0,0,0.12);--border-sub:rgba(0,0,0,0.22);
+  --r-md:8px;--r-lg:12px;
+  --c-promo:#185FA5;--c-pr:#1D9E75;--c-launch:#E24B4A;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1e1e1c;--bg-sub:#2a2a28;--bg-ter:#333330;
+  --text:#e8e6e0;--text-sub:#a0a09a;--text-muted:#6a6a65;
+  --border:rgba(255,255,255,0.10);--border-sub:rgba(255,255,255,0.20);
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans','Noto Sans JP',sans-serif;background:var(--bg-sub);color:var(--text);min-height:100vh;padding:24px 20px;}
+.page{max-width:1200px;margin:0 auto;}
+.title-wrap{margin-bottom:18px;}
+.page-title{font-size:18px;font-weight:500;margin-bottom:3px;outline:none;border-radius:4px;padding:2px 4px;margin-left:-4px;display:inline-block;min-width:200px;}
+.page-title:hover,.page-title:focus{background:var(--bg);box-shadow:0 0 0 1.5px var(--border-sub);}
+.page-sub{font-size:12px;color:var(--text-muted);outline:none;border-radius:4px;padding:2px 4px;margin-left:-4px;display:inline-block;min-width:200px;}
+.page-sub:hover,.page-sub:focus{background:var(--bg);box-shadow:0 0 0 1.5px var(--border-sub);}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:18px 22px;margin-bottom:14px;}
+.input-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:11px;color:var(--text-sub);display:flex;align-items:center;gap:6px;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+input[type=date],input[type=text],input[type=number]{font-size:13px;padding:7px 10px;border:0.5px solid var(--border-sub);border-radius:var(--r-md);background:var(--bg);color:var(--text);outline:none;width:100%;}
+input[type=date]:focus,input[type=text]:focus,input[type=number]:focus{border-color:var(--c-promo);box-shadow:0 0 0 3px rgba(24,95,165,0.10);}
+button.primary{font-size:13px;padding:7px 16px;border:0.5px solid var(--border-sub);border-radius:var(--r-md);background:var(--bg);color:var(--text);cursor:pointer;white-space:nowrap;}
+button.primary:hover{background:var(--bg-sub);}
+button.ghost{font-size:11px;padding:4px 10px;border:0.5px solid var(--border-sub);border-radius:var(--r-md);background:transparent;color:var(--text-muted);cursor:pointer;}
+button.ghost:hover{background:var(--bg-sub);}
+button.icon-btn{font-size:11px;padding:3px 8px;border:0.5px solid transparent;border-radius:var(--r-md);background:transparent;color:var(--text-muted);cursor:pointer;}
+button.icon-btn:hover{border-color:var(--border-sub);background:var(--bg-sub);}
+.btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;}
+.summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.sc{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r-md);padding:10px 14px;}
+.sc .sl{font-size:10px;color:var(--text-muted);margin-bottom:4px;display:flex;align-items:center;gap:5px;}
+.sc .sv{font-size:17px;font-weight:500;}
+.sc .ss{font-size:10px;color:var(--text-muted);margin-top:2px;}
+.legend-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.legend{display:flex;gap:12px;flex-wrap:wrap;}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-sub);}
+.ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.tbl-wrap{overflow-x:auto;border-radius:var(--r-md);border:0.5px solid var(--border);}
+table{border-collapse:collapse;width:100%;min-width:800px;font-size:11px;}
+th,td{border:0.5px solid var(--border);padding:0;}
+.rl{padding:4px 10px;font-size:11px;color:var(--text-sub);white-space:nowrap;min-width:200px;max-width:200px;background:var(--bg);line-height:1.5;vertical-align:middle;}
+.rl.editable{cursor:pointer;}.rl.editable:hover{background:var(--bg-sub);}
+.rl.bold{font-weight:500;color:var(--text);}
+.rl.custom-task{color:var(--text);padding-left:20px;}
+.rl-inner{display:flex;align-items:center;gap:5px;}
+.edited-badge{font-size:9px;background:#E6F1FB;color:#185FA5;padding:1px 5px;border-radius:3px;flex-shrink:0;}
+.wh{text-align:center;padding:3px 1px;font-size:10px;color:var(--text-muted);background:var(--bg-sub);min-width:40px;line-height:1.4;white-space:nowrap;}
+.tc{height:28px;min-width:40px;position:relative;}
+.bar{position:absolute;top:5px;bottom:5px;border-radius:3px;}
+.ph td{font-size:10px;font-weight:500;color:#fff;padding:5px 10px;letter-spacing:.04em;}
+.ph-custom td{font-size:10px;font-weight:500;padding:5px 10px;background:var(--bg-ter);color:var(--text-sub);}
+.mline{position:absolute;top:0;bottom:0;left:50%;width:2px;z-index:2;pointer-events:none;}
+.mline::before{content:'';position:absolute;top:1px;left:-4px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;}
+.mline.launch{background:#E24B4A;}.mline.launch::before{border-top:6px solid #E24B4A;}
+.mline.pr{background:#1D9E75;opacity:.8;}.mline.pr::before{border-top:6px solid #1D9E75;}
+.mline.promo{background:#185FA5;opacity:.6;}.mline.promo::before{border-top:6px solid #185FA5;}
+/* タスク管理エリア */
+.manage-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:16px 22px;margin-top:14px;}
+.manage-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.tab-btn{font-size:12px;padding:5px 14px;border:0.5px solid var(--border-sub);border-radius:var(--r-md);background:var(--bg-sub);color:var(--text-muted);cursor:pointer;}
+.tab-btn.active{background:var(--bg);color:var(--text);border-color:var(--border-sub);font-weight:500;}
+.tab-pane{display:none;}.tab-pane.active{display:block;}
+/* デフォルトフェーズのタスク追加 */
+.default-phase-block{border:0.5px solid var(--border);border-radius:var(--r-md);margin-bottom:10px;overflow:hidden;}
+.default-phase-header{padding:8px 14px;font-size:12px;font-weight:500;color:#fff;}
+.default-phase-body{padding:10px 14px;}
+.task-add-form{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px;}
+.task-add-form .fg{flex:1;min-width:80px;}
+.task-add-form .fg.wide{flex:2;min-width:140px;}
+.task-add-form label{font-size:10px;color:var(--text-muted);display:block;margin-bottom:3px;}
+.task-item-list{margin-top:6px;}
+.task-item{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:12px;}
+.task-item:last-child{border-bottom:none;}
+.task-item-name-edit{font-size:12px;padding:3px 6px;border:0.5px solid var(--border-sub);border-radius:var(--r-md);background:var(--bg);color:var(--text);outline:none;flex:1;}
+.task-item-name-edit:focus{border-color:var(--c-promo);}
+.task-item-date-edit{font-size:11px;padding:3px 6px;border:0.5px solid var(--border-sub);border-radius:var(--r-md);background:var(--bg);color:var(--text);outline:none;width:110px;}
+.task-item-dur-edit{font-size:11px;padding:3px 6px;border:0.5px solid var(--border-sub);border-radius:var(--r-md);background:var(--bg);color:var(--text);outline:none;width:60px;}
+/* カスタムプロジェクト */
+.project-block{border:0.5px solid var(--border);border-radius:var(--r-md);margin-bottom:10px;overflow:hidden;}
+.project-header{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-sub);}
+.project-name-input{font-size:13px;padding:5px 8px;border:0.5px solid var(--border-sub);border-radius:var(--r-md);background:var(--bg);color:var(--text);outline:none;flex:1;}
+.project-body{padding:10px 14px;}
+/* モーダル */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:100;align-items:center;justify-content:center;}
+.modal-box{background:var(--bg);border:0.5px solid var(--border-sub);border-radius:var(--r-lg);padding:22px 26px;width:320px;max-width:90vw;}
+.modal-name{font-size:13px;font-weight:500;margin-bottom:3px;}
+.modal-default{font-size:11px;color:var(--text-muted);margin-bottom:14px;}
+.modal-field{display:flex;flex-direction:column;gap:4px;margin-bottom:16px;}
+.modal-field label{font-size:11px;color:var(--text-sub);}
+.modal-field input{font-size:14px;padding:7px 9px;border:0.5px solid var(--border-sub);border-radius:var(--r-md);background:var(--bg);color:var(--text);outline:none;width:100%;}
+.modal-btns{display:flex;gap:8px;}
+.modal-btns button{font-size:12px;padding:6px 10px;cursor:pointer;border-radius:var(--r-md);border:0.5px solid var(--border-sub);background:var(--bg);color:var(--text);}
+.modal-btns button:first-child{flex:1;}
+.modal-btns button:hover{background:var(--bg-sub);}
+#placeholder{text-align:center;padding:3rem 0;color:var(--text-muted);font-size:13px;}
+.effort-section{margin-top:14px;}
+.effort-section-title{font-size:12px;font-weight:500;color:var(--text-sub);margin-bottom:10px;}
+.effort-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}
+.effort-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
+.effort-head{padding:10px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:7px;}
+.effort-ph-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.effort-head-name{font-size:12px;font-weight:500;color:var(--text);}
+.effort-body{padding:10px 14px;}
+.effort-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:0.5px solid var(--border);font-size:11px;}
+.effort-row:last-of-type{border-bottom:none;}
+.effort-lbl{color:var(--text-muted);}
+.effort-val{font-weight:500;color:var(--text);}
+.effort-val.big{font-size:15px;}
+.effort-big{font-weight:500;color:var(--text);font-size:15px;}
+.effort-breakdown{margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border);}
+.effort-bk-title{font-size:10px;color:var(--text-muted);margin-bottom:5px;}
+.effort-bk-row{display:flex;justify-content:space-between;font-size:10px;color:var(--text-sub);padding:2px 0;}
+.effort-bar-bg{height:3px;background:var(--bg-sub);border-radius:2px;margin-top:2px;overflow:hidden;}
+.effort-bar-fill{height:100%;border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="title-wrap">
+    <p class="page-title" id="page-title" contenteditable="true" spellcheck="false">プロモーションスケジュール</p><br>
+    <p class="page-sub" id="page-sub" contenteditable="true" spellcheck="false">施策名・概要などを入力してください</p>
+  </div>
+
+  <div class="card">
+    <div class="input-grid">
+      <div class="field"><label><div class="dot" style="background:#185FA5;"></div>プロモーション開始日</label><input type="date" id="promo-date"></div>
+      <div class="field"><label><div class="dot" style="background:#1D9E75;"></div>プレスリリース配信日</label><input type="date" id="pr-date"></div>
+      <div class="field"><label><div class="dot" style="background:#E24B4A;"></div>機能リリース日</label><input type="date" id="launch-date"></div>
+    </div>
+    <div class="btn-row">
+      <button class="primary" id="gen-btn">スケジュール生成</button>
+      <button class="primary" id="xlsx-btn" style="display:none;">Excelで保存</button>
+      <button class="primary" id="sheets-btn" style="display:none;">スプレッドシートで開く</button>
+      <button class="ghost" id="reset-all-btn">工数をリセット</button>
+      <button class="ghost" id="clear-all-btn" style="color:#E24B4A;border-color:rgba(226,75,74,0.3);">🗑 全データをクリア</button>
+    </div>
+  </div>
+
+  <div id="summary" class="summary-row" style="display:none;"></div>
+
+  <div class="legend-bar">
+    <div class="legend">
+      <div class="li"><div class="ld" style="background:#534AB7;"></div>社内準備</div>
+      <div class="li"><div class="ld" style="background:#185FA5;"></div>製品サイト</div>
+      <div class="li"><div class="ld" style="background:#1D9E75;"></div>広告出稿</div>
+      <div class="li"><div class="ld" style="background:#BA7517;"></div>プレスリリース</div>
+      <div class="li"><div class="ld" style="background:#888780;"></div>追加タスク</div>
+      <div class="li"><div class="ld" style="background:#185FA5;width:2px;height:12px;border-radius:0;opacity:.6;"></div>プロモ開始</div>
+      <div class="li"><div class="ld" style="background:#1D9E75;width:2px;height:12px;border-radius:0;opacity:.8;"></div>PR配信</div>
+      <div class="li"><div class="ld" style="background:#E24B4A;width:2px;height:12px;border-radius:0;"></div>機能リリース</div>
+    </div>
+    <span style="font-size:11px;color:var(--text-muted);">デフォルトタスク名クリックで工数を編集</span>
+  </div>
+
+  <div class="tbl-wrap"><div id="gc"></div></div>
+  <p id="placeholder">3つの日付を入力してスケジュールを生成してください</p>
+
+  <!-- タスク管理エリア -->
+  <div class="manage-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-size:12px;font-weight:500;color:var(--text-sub);">タスクを追加・管理</span>
+      <button class="primary" id="add-project-btn">＋ プロジェクトを追加</button>
+    </div>
+    <div class="manage-tabs" id="manage-tabs"></div>
+    <div id="manage-panes"></div>
+  </div>
+
+  <div class="effort-section" id="effort-section" style="display:none;">
+    <div class="effort-section-title">工数サマリー　<span style="font-size:10px;font-weight:400;color:var(--text-muted);">公開日から逆算した準備工数</span></div>
+    <div class="effort-grid" id="effort-grid"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-name" id="edit-task-name"></div>
+    <div class="modal-default" id="edit-default"></div>
+    <div class="modal-field"><label>工数（日数）</label><input type="number" id="edit-dur" min="1" max="180"></div>
+    <div class="modal-btns">
+      <button id="apply-btn">適用</button>
+      <button id="reset-btn">デフォルトに戻す</button>
+      <button id="cancel-btn">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var FIXED = [
+  {id:'s1',phase:'社内準備',pc:'#534AB7'},
+  {id:'s2',label:'情報受領（戦略から）',      base:'promo',oDyn:function(p){return p-63;},d:7, c:'#AFA9EC'},
+  {id:'s3',label:'訴求設計',                  base:'promo',oDyn:function(p){return p-56;},d:14,c:'#534AB7'},
+  {id:'s4',label:'訴求 確認・承認',           base:'promo',oDyn:function(p){return p-49;},d:14,c:'#3C3489'},
+  {id:'w1',phase:'製品サイト',pc:'#185FA5'},
+  {id:'w2',label:'サイト骨子作成',            base:'promo',oDyn:function(p){return p-42;},d:14,c:'#85B7EB'},
+  {id:'w3',label:'サイト骨子 確認依頼・承認', base:'promo',oDyn:function(p){return p-35;},d:14,c:'#378ADD'},
+  {id:'w4',label:'CR課 依頼・制作',           base:'promo',oDyn:function(p){return p-28;},d:28,c:'#185FA5'},
+  {id:'w5',label:'▶ 公開',                    base:'promo',oDyn:function(p){return p;},   d:1, c:'#0C447C',star:true},
+  {id:'l1',phase:'広告出稿',pc:'#1D9E75'},
+  {id:'l2',label:'出稿キーワード洗い出し',    base:'promo',oDyn:function(p){return p-42;},d:14,c:'#9FE1CB'},
+  {id:'l3',label:'LP骨子・広告CR作成',        base:'promo',oDyn:function(p){return p-42;},d:14,c:'#5DCAA5'},
+  {id:'l4',label:'LP骨子・広告CR 確認・承認', base:'promo',oDyn:function(p){return p-35;},d:14,c:'#1D9E75'},
+  {id:'l5',label:'CR課 依頼・制作',           base:'promo',oDyn:function(p){return p-28;},d:28,c:'#0F6E56'},
+  {id:'l6',label:'▶ LP公開・広告出稿開始',    base:'promo',oDyn:function(p){return p;},   d:1, c:'#085041',star:true},
+  {id:'r1',phase:'プレスリリース',pc:'#BA7517'},
+  {id:'r2',label:'リリース文作成',            base:'pr',oDyn:function(p){return p-21;},d:14,c:'#FAC775'},
+  {id:'r3',label:'リリース文 確認・承認',     base:'pr',oDyn:function(p){return p-14;},d:7, c:'#EF9F27'},
+  {id:'r4',label:'CR課 依頼・制作',           base:'pr',oDyn:function(p){return p-7;}, d:5, c:'#BA7517'},
+  {id:'r5',label:'リリース管理申請',          base:'pr',oDyn:function(p){return p-5;}, d:6, c:'#854F0B'},
+  {id:'r6',label:'PRTIMESページ設定',         base:'pr',oDyn:function(p){return p-5;}, d:6, c:'#854F0B'},
+  {id:'r7',label:'SNS投稿文作成',             base:'pr',oDyn:function(p){return p;},   d:1, c:'#854F0B'},
+  {id:'r8',label:'▶ 配信（プレスリリース）',  base:'pr',oDyn:function(p){return p;},   d:1, c:'#633806',star:true}
+];
+
+// デフォルトフェーズへの追加タスク: {phaseId, id, name, startDate, duration}
+var defaultExtraTasks = [];
+// カスタムプロジェクト: [{id, name, tasks:[{id,name,startDate,duration}]}]
+var customProjects = [];
+var promoDate=null,prDate=null,launchDate=null;
+var taskOverrides={},currentEditId=null;
+var DAY=86400000;
+var activeTab='';
+
+function fmt(d){return (d.getMonth()+1)+'/'+d.getDate();}
+function fmtFull(d){return d.getFullYear()+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+('0'+d.getDate()).slice(-2);}
+function uid(){return Date.now()+Math.floor(Math.random()*9999);}
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function computeEffMap(){
+  var result={},phases={},curPhId=null;
+  for(var i=0;i<FIXED.length;i++){var t=FIXED[i];if(t.phase){curPhId=t.id;phases[curPhId]=[];continue;}phases[curPhId].push(t);}
+  for(var phId in phases){var tasks=phases[phId],shift=0;for(var j=0;j<tasks.length;j++){var tk=tasks[j],ov=taskOverrides[tk.id]!==undefined?taskOverrides[tk.id]:tk.d;result[tk.id]={dur:ov,shift:shift};shift+=ov-tk.d;}}
+  return result;
+}
+function getBaseDate(task){return task.base==='pr'?prDate:promoDate;}
+
+function saveState(){
+  try{localStorage.setItem('promo-v5',JSON.stringify({
+    promoDate:document.getElementById('promo-date').value,
+    prDate:document.getElementById('pr-date').value,
+    launchDate:document.getElementById('launch-date').value,
+    taskOverrides:taskOverrides,
+    defaultExtraTasks:defaultExtraTasks,
+    customProjects:customProjects,
+    title:document.getElementById('page-title').textContent,
+    sub:document.getElementById('page-sub').textContent,
+    activeTab:activeTab
+  }));}catch(e){}
+}
+function loadState(){
+  try{var s=localStorage.getItem('promo-v5');if(!s)return;var o=JSON.parse(s);
+    if(o.promoDate){document.getElementById('promo-date').value=o.promoDate;promoDate=new Date(o.promoDate);}
+    if(o.prDate){document.getElementById('pr-date').value=o.prDate;prDate=new Date(o.prDate);}
+    if(o.launchDate){document.getElementById('launch-date').value=o.launchDate;launchDate=new Date(o.launchDate);}
+    if(o.taskOverrides)taskOverrides=o.taskOverrides;
+    if(o.defaultExtraTasks)defaultExtraTasks=o.defaultExtraTasks;
+    if(o.customProjects)customProjects=o.customProjects;
+    if(o.title)document.getElementById('page-title').textContent=o.title;
+    if(o.sub)document.getElementById('page-sub').textContent=o.sub;
+    if(o.activeTab)activeTab=o.activeTab;
+  }catch(e){}
+}
+
+function render(){
+  if(!promoDate||!prDate||!launchDate)return;
+  var allDates=[promoDate,prDate,launchDate];
+  var earliest=new Date(Math.min.apply(null,allDates.map(function(d){return d.getTime();})));
+  var latest=new Date(Math.max.apply(null,allDates.map(function(d){return d.getTime();})));
+  var maxDate=new Date(latest);maxDate.setDate(latest.getDate()+28);
+  function extendMax(tasks){tasks.forEach(function(t){var te=new Date(t.startDate);te.setDate(te.getDate()+t.duration);if(te>maxDate)maxDate=te;});}
+  extendMax(defaultExtraTasks);
+  customProjects.forEach(function(p){extendMax(p.tasks);});
+
+  var start=new Date(earliest);start.setDate(earliest.getDate()-77);
+  var end=new Date(maxDate);end.setDate(maxDate.getDate()+14);
+  var weeks=[],wd=new Date(start);
+  while(wd<=end){weeks.push(new Date(wd));wd.setDate(wd.getDate()+7);}
+
+  function col(date){return Math.round((date.getTime()-start.getTime())/(7*DAY));}
+  var promoCol=col(promoDate),prCol=col(prDate),launchCol=col(launchDate);
+
+  function mlines(wj){
+    var s='';
+    if(wj===launchCol)s+='<div class="mline launch"></div>';
+    if(wj===prCol)s+='<div class="mline pr"></div>';
+    if(wj===promoCol)s+='<div class="mline promo"></div>';
+    return s;
+  }
+  function cBg(wj){
+    if(wj===launchCol)return 'background:rgba(226,75,74,0.04);';
+    if(wj===prCol)return 'background:rgba(29,158,117,0.04);';
+    if(wj===promoCol)return 'background:rgba(24,95,165,0.04);';
+    return '';
+  }
+  function barCells(ts,te,color){
+    var s='';
+    for(var wj=0;wj<weeks.length;wj++){
+      var wk=weeks[wj],we=new Date(wk);we.setDate(wk.getDate()+7);
+      var ov=ts.getTime()<we.getTime()&&te.getTime()>wk.getTime();
+      s+='<td class="tc" style="'+cBg(wj)+'">'+mlines(wj);
+      if(ov){
+        s+='<div class="bar" style="background:'+color+';left:2px;right:2px;"></div>';
+      }
+      s+='</td>';
+    }
+    return s;
+  }
+
+  var html='<table><thead><tr><th class="rl" style="font-size:10px;color:var(--text-muted);padding:4px 10px;background:var(--bg-sub);">タスク</th>';
+  for(var wi=0;wi<weeks.length;wi++){
+    var w=weeks[wi],isL=(wi===launchCol),isPR=(wi===prCol),isP=(wi===promoCol);
+    var isBoth=isPR&&isP;
+    var lbl=fmt(w);
+    if(isL) lbl='▼機能リリース<br>'+lbl;
+    else if(isBoth) lbl='▼プロモ開始<br>▼PR配信<br>'+lbl;
+    else if(isPR) lbl='▼PR配信<br>'+lbl;
+    else if(isP)  lbl='▼プロモ開始<br>'+lbl;
+    var st=isL?'background:#FCEBEB;color:#A32D2D;font-weight:500;':
+           isBoth?'background:#E1F5EE;color:#0C5E47;font-weight:500;border-left:3px solid #185FA5;':
+           isPR?'background:#E1F5EE;color:#0F6E56;font-weight:500;':
+           isP?'background:#E6F1FB;color:#185FA5;font-weight:500;':'';
+    html+='<th class="wh" style="'+st+'">'+lbl+'</th>';
+  }
+  html+='</tr></thead><tbody>';
+
+  var effMap=computeEffMap();
+  var curPhaseId='';
+  for(var fi=0;fi<FIXED.length;fi++){
+    var task=FIXED[fi];
+    if(task.phase){
+      curPhaseId=task.id;
+      html+='<tr class="ph"><td colspan="'+(weeks.length+1)+'" style="background:'+task.pc+';">'+task.phase+'</td></tr>';
+      continue;
+    }
+    var bd=getBaseDate(task);if(!bd)continue;
+    var bp=Math.round((bd.getTime()-launchDate.getTime())/DAY);
+    var rawOff=task.oDyn?task.oDyn(bp):(task.o||0);
+    var eff=effMap[task.id]||{dur:task.d,shift:0};
+    var off=rawOff+eff.shift,dur=eff.dur;
+    var ts=new Date(launchDate);ts.setDate(launchDate.getDate()+off);
+    var te=new Date(ts);te.setDate(ts.getDate()+dur);
+    var isEd=taskOverrides[task.id]!==undefined;
+    var badge=isEd?'<span class="edited-badge">'+dur+'日</span>':'';
+    html+='<tr><td class="rl editable'+(task.star?' bold':'')+'" data-task-id="'+task.id+'"><div class="rl-inner">'+task.label+badge+'</div></td>'+barCells(ts,te,task.c)+'</tr>';
+
+    // この固定タスクが最後のタスク（次がphaseかundefined）なら追加タスクを挿入
+    var nextFixed=FIXED[fi+1];
+    var isLastInPhase=!nextFixed||nextFixed.phase;
+    if(isLastInPhase){
+      var extras=defaultExtraTasks.filter(function(t){return t.phaseId===curPhaseId;});
+      extras.forEach(function(et){
+        var ets=new Date(et.startDate),ete=new Date(ets);ete.setDate(ets.getDate()+et.duration);
+        html+='<tr><td class="rl custom-task">'+escH(et.name)+'</td>'+barCells(ets,ete,'#888780')+'</tr>';
+      });
+    }
+  }
+
+  // カスタムプロジェクト
+  if(customProjects.length>0){
+    html+='<tr><td colspan="'+(weeks.length+1)+'" style="height:4px;background:var(--bg-ter);border:none;"></td></tr>';
+    customProjects.forEach(function(proj){
+      html+='<tr class="ph-custom"><td colspan="'+(weeks.length+1)+'">'+escH(proj.name)+'</td></tr>';
+      proj.tasks.forEach(function(pt){
+        var pts=new Date(pt.startDate),pte=new Date(pts);pte.setDate(pts.getDate()+pt.duration);
+        html+='<tr><td class="rl custom-task">'+escH(pt.name)+'</td>'+barCells(pts,pte,'#888780')+'</tr>';
+      });
+    });
+  }
+
+  html+='</tbody></table>';
+  document.getElementById('gc').innerHTML=html;
+  document.getElementById('placeholder').style.display='none';
+  document.getElementById('xlsx-btn').style.display='';
+  document.getElementById('sheets-btn').style.display='';
+
+  document.querySelectorAll('td[data-task-id]').forEach(function(c){
+    c.addEventListener('click',function(){openEdit(this.getAttribute('data-task-id'));});
+  });
+
+  var sum=document.getElementById('summary');
+  var sameDay=promoDate.getTime()===prDate.getTime();
+  sum.style.display='grid';
+  sum.innerHTML=
+    '<div class="sc"'+(sameDay?' style="border-left:3px solid #185FA5;"':'')+'>'+
+      '<div class="sl"><div class="dot" style="background:#185FA5;width:7px;height:7px;border-radius:50%;flex-shrink:0;"></div>プロモーション開始'+(sameDay?' <span style="font-size:9px;background:#E6F1FB;color:#185FA5;padding:1px 5px;border-radius:3px;margin-left:2px;">PR配信と同日</span>':'')+
+      '</div><div class="sv" style="color:#185FA5;">'+fmt(promoDate)+'</div><div class="ss">'+promoDate.getFullYear()+'</div></div>'+
+    '<div class="sc"'+(sameDay?' style="border-left:3px solid #1D9E75;"':'')+'>'+
+      '<div class="sl"><div class="dot" style="background:#1D9E75;width:7px;height:7px;border-radius:50%;flex-shrink:0;"></div>プレスリリース配信'+(sameDay?' <span style="font-size:9px;background:#E1F5EE;color:#1D9E75;padding:1px 5px;border-radius:3px;margin-left:2px;">プロモ開始と同日</span>':'')+
+      '</div><div class="sv" style="color:#1D9E75;">'+fmt(prDate)+'</div><div class="ss">'+prDate.getFullYear()+'</div></div>'+
+    '<div class="sc"><div class="sl"><div class="dot" style="background:#E24B4A;width:7px;height:7px;border-radius:50%;flex-shrink:0;"></div>機能リリース</div><div class="sv" style="color:#E24B4A;">'+fmt(launchDate)+'</div><div class="ss">'+launchDate.getFullYear()+'</div></div>';
+
+  renderManage();
+  renderEffortSummary();
+}
+
+function gen(){
+  var pv=document.getElementById('promo-date').value,rv=document.getElementById('pr-date').value,lv=document.getElementById('launch-date').value;
+  if(!pv||!rv||!lv){alert('3つの日付をすべて入力してください');return;}
+  promoDate=new Date(pv);prDate=new Date(rv);launchDate=new Date(lv);
+  saveState();render();
+}
+
+// ---- 工数編集モーダル ----
+function openEdit(taskId){
+  var task=null;for(var i=0;i<FIXED.length;i++){if(FIXED[i].id===taskId){task=FIXED[i];break;}}
+  if(!task||task.phase)return;
+  currentEditId=taskId;
+  document.getElementById('edit-task-name').textContent=task.label;
+  document.getElementById('edit-default').textContent='デフォルト: '+task.d+'日';
+  document.getElementById('edit-dur').value=taskOverrides[taskId]!==undefined?taskOverrides[taskId]:task.d;
+  document.getElementById('edit-modal').style.display='flex';
+  document.getElementById('edit-dur').focus();
+}
+function closeEdit(){document.getElementById('edit-modal').style.display='none';currentEditId=null;}
+function applyEdit(){var val=parseInt(document.getElementById('edit-dur').value);if(isNaN(val)||val<1){alert('1以上の日数を入力してください');return;}taskOverrides[currentEditId]=val;saveState();closeEdit();render();}
+function resetEdit(){delete taskOverrides[currentEditId];saveState();closeEdit();render();}
+
+// ---- タスク管理UI ----
+function getPhases(){
+  var phases=[];
+  FIXED.forEach(function(t){if(t.phase)phases.push({id:t.id,name:t.phase,pc:t.pc});});
+  return phases;
+}
+
+function setActiveTab(tabId){
+  activeTab=tabId;saveState();renderManage();
+}
+
+function renderManage(){
+  var phases=getPhases();
+  var tabs=document.getElementById('manage-tabs');
+  var panes=document.getElementById('manage-panes');
+
+  // アクティブタブが未設定なら最初のフェーズ
+  if(!activeTab&&phases.length>0)activeTab=phases[0].id;
+
+  // タブ生成
+  var tabHtml='';
+  phases.forEach(function(ph){
+    tabHtml+='<button class="tab-btn'+(activeTab===ph.id?' active':'')+'" data-tab="'+ph.id+'">'+ph.name+'</button>';
+  });
+  customProjects.forEach(function(proj){
+    tabHtml+='<button class="tab-btn'+(activeTab==='proj-'+proj.id?' active':'')+'" data-tab="proj-'+proj.id+'">'+escH(proj.name)+'</button>';
+  });
+  tabs.innerHTML=tabHtml;
+  tabs.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){setActiveTab(this.getAttribute('data-tab'));});
+  });
+
+  // ペイン生成
+  var paneHtml='';
+
+  // デフォルトフェーズペイン
+  phases.forEach(function(ph){
+    var isActive=activeTab===ph.id;
+    var extras=defaultExtraTasks.filter(function(t){return t.phaseId===ph.id;});
+    paneHtml+='<div class="tab-pane'+(isActive?' active':'')+'" data-pane="'+ph.id+'">';
+    // 追加フォーム
+    paneHtml+='<div class="task-add-form">';
+    paneHtml+='<div class="fg wide"><label>タスク名</label><input type="text" id="det-name-'+ph.id+'" placeholder="例：追加対応"></div>';
+    paneHtml+='<div class="fg"><label>公開日</label><input type="date" id="det-date-'+ph.id+'"></div>';
+    paneHtml+='<div class="fg"><label>工数（日）</label><input type="number" id="det-dur-'+ph.id+'" placeholder="7" min="1"></div>';
+    paneHtml+='<button class="primary" data-add-default="'+ph.id+'" style="align-self:flex-end;">追加</button>';
+    paneHtml+='</div>';
+    // タスク一覧（インライン編集）
+    if(extras.length>0){
+      paneHtml+='<div class="task-item-list">';
+      extras.forEach(function(t){
+        paneHtml+='<div class="task-item">';
+        paneHtml+='<input class="task-item-name-edit" type="text" value="'+escH(t.name)+'" data-edit-name="'+t.id+'" placeholder="タスク名">';
+        paneHtml+='<input class="task-item-date-edit" type="date" value="'+t.startDate+'" data-edit-date="'+t.id+'">';
+        paneHtml+='<input class="task-item-dur-edit" type="number" value="'+t.duration+'" data-edit-dur="'+t.id+'" min="1">';
+        paneHtml+='<button class="icon-btn" data-del-default="'+t.id+'">削除</button>';
+        paneHtml+='</div>';
+      });
+      paneHtml+='</div>';
+    }
+    paneHtml+='</div>';
+  });
+
+  // カスタムプロジェクトペイン
+  customProjects.forEach(function(proj){
+    var tabId='proj-'+proj.id;
+    var isActive=activeTab===tabId;
+    paneHtml+='<div class="tab-pane'+(isActive?' active':'')+'" data-pane="'+tabId+'">';
+    paneHtml+='<div class="task-add-form" style="margin-bottom:10px;">';
+    paneHtml+='<div class="fg wide"><label>プロジェクト名</label><input type="text" id="proj-name-'+proj.id+'" value="'+escH(proj.name)+'" placeholder="プロジェクト名"></div>';
+    paneHtml+='<button class="ghost" data-del-proj="'+proj.id+'" style="align-self:flex-end;">プロジェクトを削除</button>';
+    paneHtml+='</div>';
+    paneHtml+='<div class="task-add-form">';
+    paneHtml+='<div class="fg wide"><label>タスク名</label><input type="text" id="ct-name-'+proj.id+'" placeholder="例：記事広告公開"></div>';
+    paneHtml+='<div class="fg"><label>公開日</label><input type="date" id="ct-date-'+proj.id+'"></div>';
+    paneHtml+='<div class="fg"><label>工数（日）</label><input type="number" id="ct-dur-'+proj.id+'" placeholder="7" min="1"></div>';
+    paneHtml+='<button class="primary" data-add-task-proj="'+proj.id+'" style="align-self:flex-end;">追加</button>';
+    paneHtml+='</div>';
+    if(proj.tasks.length>0){
+      paneHtml+='<div class="task-item-list">';
+      proj.tasks.forEach(function(t){
+        paneHtml+='<div class="task-item">';
+        paneHtml+='<input class="task-item-name-edit" type="text" value="'+escH(t.name)+'" data-edit-ptname="'+t.id+'" data-proj="'+proj.id+'" placeholder="タスク名">';
+        paneHtml+='<input class="task-item-date-edit" type="date" value="'+t.startDate+'" data-edit-ptdate="'+t.id+'" data-proj="'+proj.id+'">';
+        paneHtml+='<input class="task-item-dur-edit" type="number" value="'+t.duration+'" data-edit-ptdur="'+t.id+'" data-proj="'+proj.id+'" min="1">';
+        paneHtml+='<button class="icon-btn" data-del-task-proj="'+proj.id+'" data-del-task-id="'+t.id+'">削除</button>';
+        paneHtml+='</div>';
+      });
+      paneHtml+='</div>';
+    }
+    paneHtml+='</div>';
+  });
+
+  panes.innerHTML=paneHtml;
+
+  // イベント：デフォルトフェーズ追加
+  panes.querySelectorAll('[data-add-default]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var phId=this.getAttribute('data-add-default');
+      var n=document.getElementById('det-name-'+phId).value.trim();
+      var dv=document.getElementById('det-date-'+phId).value;
+      var dur=parseInt(document.getElementById('det-dur-'+phId).value);
+      if(!n||!dv||isNaN(dur)||dur<1){alert('すべての項目を入力してください');return;}
+      defaultExtraTasks.push({phaseId:phId,id:uid(),name:n,startDate:dv,duration:dur});
+      document.getElementById('det-name-'+phId).value='';
+      document.getElementById('det-date-'+phId).value='';
+      document.getElementById('det-dur-'+phId).value='';
+      saveState();render();
+    });
+  });
+
+  // イベント：デフォルトタスク削除
+  panes.querySelectorAll('[data-del-default]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var id=parseInt(this.getAttribute('data-del-default'));
+      defaultExtraTasks=defaultExtraTasks.filter(function(t){return t.id!==id;});
+      saveState();render();
+    });
+  });
+
+  // イベント：デフォルトタスク インライン編集（changeで反映）
+  function bindInlineEdit(selector, finder){
+    panes.querySelectorAll(selector).forEach(function(inp){
+      inp.addEventListener('change',function(){
+        var id=parseInt(this.dataset[Object.keys(this.dataset)[0]]);
+        var t=finder(id);
+        if(!t)return;
+        if(this.hasAttribute('data-edit-name')||this.hasAttribute('data-edit-ptname'))t.name=this.value;
+        else if(this.hasAttribute('data-edit-date')||this.hasAttribute('data-edit-ptdate'))t.startDate=this.value;
+        else if(this.hasAttribute('data-edit-dur')||this.hasAttribute('data-edit-ptdur')){var v=parseInt(this.value);if(!isNaN(v)&&v>0)t.duration=v;}
+        saveState();render();
+      });
+    });
+  }
+  panes.querySelectorAll('[data-edit-name]').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var id=parseInt(this.getAttribute('data-edit-name'));
+      var t=defaultExtraTasks.find(function(x){return x.id===id;});
+      if(t){t.name=this.value;saveState();render();}
+    });
+  });
+  panes.querySelectorAll('[data-edit-date]').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var id=parseInt(this.getAttribute('data-edit-date'));
+      var t=defaultExtraTasks.find(function(x){return x.id===id;});
+      if(t){t.startDate=this.value;saveState();render();}
+    });
+  });
+  panes.querySelectorAll('[data-edit-dur]').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var id=parseInt(this.getAttribute('data-edit-dur'));
+      var t=defaultExtraTasks.find(function(x){return x.id===id;});
+      if(t){var v=parseInt(this.value);if(!isNaN(v)&&v>0){t.duration=v;saveState();render();}}
+    });
+  });
+
+  // プロジェクト名変更
+  panes.querySelectorAll('[id^=proj-name-]').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var pid=parseInt(inp.id.replace('proj-name-',''));
+      var p=customProjects.find(function(x){return x.id===pid;});
+      if(p){p.name=this.value;saveState();render();}
+    });
+  });
+
+  // カスタムプロジェクトタスク追加
+  panes.querySelectorAll('[data-add-task-proj]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var pid=parseInt(this.getAttribute('data-add-task-proj'));
+      var n=document.getElementById('ct-name-'+pid).value.trim();
+      var dv=document.getElementById('ct-date-'+pid).value;
+      var dur=parseInt(document.getElementById('ct-dur-'+pid).value);
+      if(!n||!dv||isNaN(dur)||dur<1){alert('すべての項目を入力してください');return;}
+      var p=customProjects.find(function(x){return x.id===pid;});
+      if(p){p.tasks.push({id:uid(),name:n,startDate:dv,duration:dur});}
+      document.getElementById('ct-name-'+pid).value='';
+      document.getElementById('ct-date-'+pid).value='';
+      document.getElementById('ct-dur-'+pid).value='';
+      saveState();render();
+    });
+  });
+
+  // カスタムタスク インライン編集
+  panes.querySelectorAll('[data-edit-ptname]').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var pid=parseInt(this.getAttribute('data-proj'));
+      var tid=parseInt(this.getAttribute('data-edit-ptname'));
+      var p=customProjects.find(function(x){return x.id===pid;});
+      if(p){var t=p.tasks.find(function(x){return x.id===tid;});if(t){t.name=this.value;saveState();render();}}
+    });
+  });
+  panes.querySelectorAll('[data-edit-ptdate]').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var pid=parseInt(this.getAttribute('data-proj'));
+      var tid=parseInt(this.getAttribute('data-edit-ptdate'));
+      var p=customProjects.find(function(x){return x.id===pid;});
+      if(p){var t=p.tasks.find(function(x){return x.id===tid;});if(t){t.startDate=this.value;saveState();render();}}
+    });
+  });
+  panes.querySelectorAll('[data-edit-ptdur]').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var pid=parseInt(this.getAttribute('data-proj'));
+      var tid=parseInt(this.getAttribute('data-edit-ptdur'));
+      var p=customProjects.find(function(x){return x.id===pid;});
+      if(p){var t=p.tasks.find(function(x){return x.id===tid;});if(t){var v=parseInt(this.value);if(!isNaN(v)&&v>0){t.duration=v;saveState();render();}}}
+    });
+  });
+
+  // プロジェクト削除
+  panes.querySelectorAll('[data-del-proj]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var pid=parseInt(this.getAttribute('data-del-proj'));
+      if(!confirm('このプロジェクトを削除しますか？'))return;
+      customProjects=customProjects.filter(function(p){return p.id!==pid;});
+      if(activeTab==='proj-'+pid)activeTab=getPhases()[0]?getPhases()[0].id:'';
+      saveState();render();
+    });
+  });
+
+  // カスタムタスク削除
+  panes.querySelectorAll('[data-del-task-proj]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var pid=parseInt(this.getAttribute('data-del-task-proj'));
+      var tid=parseInt(this.getAttribute('data-del-task-id'));
+      var p=customProjects.find(function(x){return x.id===pid;});
+      if(p){p.tasks=p.tasks.filter(function(t){return t.id!==tid;});saveState();render();}
+    });
+  });
+}
+
+
+function renderEffortSummary(){
+  var section=document.getElementById('effort-section');
+  var grid=document.getElementById('effort-grid');
+  if(!launchDate||!promoDate||!prDate){section.style.display='none';return;}
+  section.style.display='block';
+  var effMap=computeEffMap();
+
+  var phases=[];
+  var curPhase=null;
+  for(var fi=0;fi<FIXED.length;fi++){
+    var t=FIXED[fi];
+    if(t.phase){curPhase={id:t.id,name:t.phase,pc:t.pc,tasks:[]};phases.push(curPhase);continue;}
+    if(!curPhase)continue;
+    var bd=getBaseDate(t);if(!bd)continue;
+    var bp=Math.round((bd.getTime()-launchDate.getTime())/DAY);
+    var rawOff=t.oDyn?t.oDyn(bp):(t.o||0);
+    var eff=effMap[t.id]||{dur:t.d,shift:0};
+    // bdからの相対offset（完了日基準に変換するため）
+    var bdOffset=Math.round((bd.getTime()-launchDate.getTime())/DAY);
+    var absOffset=rawOff+eff.shift; // launchDate基準のoffset
+    var relOffset=absOffset-bdOffset; // bd（プロモ開始orPR配信）からのoffset
+    curPhase.tasks.push({
+      label:t.label.replace('\u25b6 ',''),
+      relOffset:relOffset, // 基準日からの相対offset
+      dur:eff.dur,
+      c:t.c,
+      bd:bd
+    });
+  }
+  defaultExtraTasks.forEach(function(et){
+    var ph=phases.find(function(p){return p.id===et.phaseId;});
+    if(!ph)return;
+    var sd=new Date(et.startDate);
+    var off=Math.round((sd.getTime()-launchDate.getTime())/DAY);
+    ph.tasks.push({label:et.name,relOffset:off,dur:et.duration,c:'#888780',bd:launchDate});
+  });
+
+  var allGroups=phases.slice();
+  customProjects.forEach(function(proj){
+    var tasks=proj.tasks.map(function(t){
+      var sd=new Date(t.startDate);
+      return {label:t.name,relOffset:Math.round((sd.getTime()-launchDate.getTime())/DAY),dur:t.duration,c:'#888780',bd:launchDate};
+    });
+    allGroups.push({name:proj.name,pc:'#888780',tasks:tasks});
+  });
+
+  var parts=[];
+  allGroups.forEach(function(g){
+    if(g.tasks.length===0)return;
+
+    // 完了日（基準日＝フェーズの公開日・配信日）から準備開始までの日数
+    // relOffsetが最も小さい（最も早い）タスクの開始が準備開始
+    var relOffsets=g.tasks.map(function(t){return t.relOffset;});
+    var earliestRel=Math.min.apply(null,relOffsets); // 負の値（例：-42）
+    var prepDays=Math.abs(earliestRel); // 完了日の何日前から準備開始か
+
+    // 総工数：全タスクのdurの合計
+    var totalDays=g.tasks.reduce(function(s,t){return s+t.dur;},0);
+
+    var maxDur=Math.max.apply(null,g.tasks.map(function(t){return t.dur;}));
+
+    var rows=['<div class="effort-card">'];
+    rows.push('<div class="effort-head"><div class="effort-ph-dot" style="background:'+g.pc+'"></div><div class="effort-head-name">'+escH(g.name)+'</div></div>');
+    rows.push('<div class="effort-body">');
+    rows.push('<div class="effort-row"><span class="effort-lbl">完了日の何日前から着手</span><span class="effort-big">'+prepDays+'日前〜</span></div>');
+    rows.push('<div class="effort-row"><span class="effort-lbl">タスク工数の合計</span><span class="effort-val">'+totalDays+'日</span></div>');
+    rows.push('<div class="effort-row"><span class="effort-lbl">タスク数</span><span class="effort-val">'+g.tasks.length+'件</span></div>');
+    rows.push('<div class="effort-breakdown"><div class="effort-bk-title">タスク別工数</div>');
+    g.tasks.forEach(function(t){
+      var pct=maxDur>0?Math.round(t.dur/maxDur*100):0;
+      rows.push('<div class="effort-bk-row"><span>'+escH(t.label)+'</span><span>'+t.dur+'日</span></div>');
+      rows.push('<div class="effort-bar-bg"><div class="effort-bar-fill" style="width:'+pct+'%;background:'+t.c+';opacity:0.75;"></div></div>');
+    });
+    rows.push('</div></div></div>');
+    parts.push(rows.join(''));
+  });
+  grid.innerHTML=parts.length?parts.join(''):'<p style="font-size:11px;color:var(--text-muted);">タスクが設定されていません</p>';
+}
+
+// ---- エクスポート ----
+function collectAllRows(){
+  if(!launchDate)return[];
+  var rows=[],effMap=computeEffMap(),curPhase='',curPhaseId='';
+  for(var fi=0;fi<FIXED.length;fi++){
+    var task=FIXED[fi];
+    if(task.phase){curPhase=task.phase;curPhaseId=task.id;continue;}
+    var bd=getBaseDate(task);if(!bd)continue;
+    var bp=Math.round((bd.getTime()-launchDate.getTime())/DAY);
+    var rawOff=task.oDyn?task.oDyn(bp):(task.o||0);
+    var eff=effMap[task.id]||{dur:task.d,shift:0};
+    var off=rawOff+eff.shift,dur=eff.dur;
+    var ts=new Date(launchDate);ts.setDate(launchDate.getDate()+off);
+    var te=new Date(ts);te.setDate(ts.getDate()+dur-1);
+    rows.push({phase:curPhase,label:task.label.replace('▶ ',''),start:fmtFull(ts),end:fmtFull(te),duration:dur});
+    // フェーズ末の追加タスク
+    var nextFixed=FIXED[fi+1];
+    if(!nextFixed||nextFixed.phase){
+      defaultExtraTasks.filter(function(t){return t.phaseId===curPhaseId;}).forEach(function(et){
+        var ets=new Date(et.startDate),ete=new Date(ets);ete.setDate(ets.getDate()+et.duration-1);
+        rows.push({phase:curPhase,label:et.name,start:fmtFull(ets),end:fmtFull(ete),duration:et.duration});
+      });
+    }
+  }
+  customProjects.forEach(function(proj){
+    proj.tasks.forEach(function(pt){
+      var pts=new Date(pt.startDate),pte=new Date(pts);pte.setDate(pts.getDate()+pt.duration-1);
+      rows.push({phase:proj.name,label:pt.name,start:fmtFull(pts),end:fmtFull(pte),duration:pt.duration});
+    });
+  });
+  return rows;
+}
+
+function buildCSV(){
+  var rows=collectAllRows();
+  var lines=['\uFEFF'+'フェーズ,タスク名,開始日,終了日,期間（日）'];
+  rows.forEach(function(r){lines.push('"'+r.phase+'","'+r.label+'",'+r.start+','+r.end+','+r.duration);});
+  return lines.join('\n');
+}
+
+function exportXLSX(){
+  if(!launchDate){alert('先にスケジュールを生成してください');return;}
+  if(typeof XLSX==='undefined'){alert('ライブラリ読み込み中です');return;}
+  var rows=collectAllRows();
+  var data=[['フェーズ','タスク名','開始日','終了日','期間（日）']];
+  rows.forEach(function(r){data.push([r.phase,r.label,r.start,r.end,r.duration]);});
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:18},{wch:32},{wch:14},{wch:14},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,'スケジュール');
+  var ds=launchDate.getFullYear()+('0'+(launchDate.getMonth()+1)).slice(-2)+('0'+launchDate.getDate()).slice(-2);
+  XLSX.writeFile(wb,'promo-schedule-'+ds+'.xlsx');
+}
+
+function exportSheets(){
+  if(!launchDate){alert('先にスケジュールを生成してください');return;}
+  var csv=buildCSV();
+  var title=document.getElementById('page-title').textContent||'プロモーションスケジュール';
+  var ds=launchDate.getFullYear()+('0'+(launchDate.getMonth()+1)).slice(-2)+('0'+launchDate.getDate()).slice(-2);
+  // CSVとタイトルをClaudeに送ってアップロードしてもらう
+  var msg='スプレッドシートを作成してください。\nファイル名：'+title+'-'+ds+'\n\n```csv\n'+csv+'\n```';
+  if(typeof sendPrompt==='function'){sendPrompt(msg);}
+  else{alert('この機能はClaude.ai上で動作します。');}
+}
+
+// ---- イベント登録 ----
+document.getElementById('gen-btn').addEventListener('click',gen);
+document.getElementById('xlsx-btn').addEventListener('click',exportXLSX);
+document.getElementById('sheets-btn').addEventListener('click',exportSheets);
+document.getElementById('add-project-btn').addEventListener('click',function(){
+  customProjects.push({id:uid(),name:'新しいプロジェクト',tasks:[]});
+  activeTab='proj-'+customProjects[customProjects.length-1].id;
+  saveState();render();
+});
+document.getElementById('reset-all-btn').addEventListener('click',function(){
+  if(!confirm('すべてのタスク工数をデフォルトに戻しますか？'))return;
+  taskOverrides={};saveState();render();
+});
+document.getElementById('clear-all-btn').addEventListener('click',function(){
+  if(!confirm('すべてのデータをクリアします。\n（日付・タスク・追加プロジェクト・タイトルがリセットされます）\nよろしいですか？'))return;
+  // 全データリセット
+  promoDate=null;prDate=null;launchDate=null;
+  taskOverrides={};defaultExtraTasks=[];customProjects=[];activeTab='';
+  document.getElementById('promo-date').value='';
+  document.getElementById('pr-date').value='';
+  document.getElementById('launch-date').value='';
+  document.getElementById('page-title').textContent='プロモーションスケジュール';
+  document.getElementById('page-sub').textContent='施策名・概要などを入力してください';
+  document.getElementById('gc').innerHTML='';
+  document.getElementById('placeholder').style.display='';
+  document.getElementById('summary').style.display='none';
+  document.getElementById('xlsx-btn').style.display='none';
+  document.getElementById('sheets-btn').style.display='none';
+  document.getElementById('effort-section').style.display='none';
+  try{localStorage.removeItem('promo-v5');}catch(e){}
+  renderManage();
+});
+document.getElementById('apply-btn').addEventListener('click',applyEdit);
+document.getElementById('reset-btn').addEventListener('click',resetEdit);
+document.getElementById('cancel-btn').addEventListener('click',closeEdit);
+document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEdit();});
+document.getElementById('edit-dur').addEventListener('keydown',function(e){if(e.key==='Enter')applyEdit();});
+document.getElementById('page-title').addEventListener('input',saveState);
+document.getElementById('page-sub').addEventListener('input',saveState);
+
+loadState();
+if(promoDate&&prDate&&launchDate){render();}else{renderManage();}
+</script>
+</body>
+</html>
